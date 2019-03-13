@@ -1,0 +1,9 @@
+
+Hover over buttons
+
+
+move files: select list of files, askdirectory()
+            make scroll visible
+
+compare lists: choose the files ask derictory()
+            make scroll visible
