@@ -1,4 +1,41 @@
-What's next? :
+sudden termination control
 
-  Hover over buttons
-  Error protections
+reference table: diagnosis - ml code - treatment : create autofill/drop down - select all visit where
+diagnosis is this and show treatments in drop down with ability to make a new one;
+
+close button:
+    save all;
+    teach the diagnosis reference table with
+
+---------------------------
+UPDATE VISIT class
+            full set of VALUES
+            add id
+---------------------------
+
+
+
+--------------------------------------------------
+when the SAVE&PRINT button is pressed:
+        input check - Name, date, diagnosis
+        confirm that everything entered is correct?
+        new visit in the TABLE (db)
+        create and save pdf file
+        remove from saved for later if is in the list
+        clear the entire frame and report result
+--------------------------------------------------
+when SAVE FOR LATER button is pressed:
+        input check - Name, date
+        saved for later flag = 1
+        the class is passed to the today's patients
+        the form is cleared, report result
+--------------------------------------------------
+
+today's patients RENAME TO SAVED FOR LATER
+          *array of classes* with the
+          last name.
+                  Click-edit
+                              opens the form with the same LABELS
+                              values taken from the class passed
+                              SAVE button
+                              SAVE&PRINT button
