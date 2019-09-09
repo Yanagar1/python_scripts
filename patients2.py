@@ -1,4 +1,4 @@
-#----DATA INITIALIZER FILE-----CROSS PLATFORMS
+#----DATA INITIALIZER FILE-----
 import sqlite3,  datetime, os
 from tkinter import *
 from tkcalendar import *
@@ -9,6 +9,50 @@ import random
 import atexit
 
 id_taken = []
+
+#------------------------DB FUNCTIONS-------------------------------------------
+
+def create_connection():
+    try:
+        connection = sqlite3.connect("patients.db")
+        return connection
+    except Error as e:
+        print(e)
+    return None
+
+
+#writes patient to any table
+def add_patient_to_db(connection, table_name, last_name,first_name, birthyear,birthmonth,birthday,visit_date,
+visit_type,directed,complaints,sicktime,prev_treatment,other_illness,diabetes,infect,
+allergy,drug_allergy,heredity,medicaments,addictions,blood_donor,loc_stat,process_characteristic,
+skin_of,symptoms,dermographism1,dermographism2,mucous_membranes,mucous_membranes2,lymph,lymph_description,
+lymph_description1,lymph_description2,lymph_description4,lymph_description6,lymph_description5,
+hair_description,hair_description2,nails_of,nails_desc,additional_symp,scabies_comment,diagnosis_main,form,
+stage,code,diagnosis2,complication,treatment,treatment2,treatment3,treatment4,treatment5,treatment6,recomm,
+recomm2,recomm3,recomm4,recomm5,recomm6,comeback,doctor):
+    cursor = connection.cursor()
+    process=', '.join(process_characteristic)
+    cursor.execute("""INSERT INTO {}(last_name,first_name, birthyear,birthmonth,birthday,visit_date,
+    visit_type,directed,complaints,sicktime,prev_treatment,other_illness,diabetes,infections,
+    allergy,drug_allergy,heredity,medicaments,addictions,blood_donor,loc_stat,process_characteristic,
+    skin_of,symptoms,dermographism1,dermographism2,mucous_membranes,mucous_membranes2,lymph,lymph_description,
+    lymph_description1,lymph_description2,lymph_description4,lymph_description6,lymph_description5,
+    hair_description,hair_description2,nails_of,nails_desc,additional_symp,scabies_comment,diagnosis_main,form,
+    stage,code,diagnosis2,complication,treatment,treatment2,treatment3,treatment4,treatment5,treatment6,recomm,
+    recomm2,recomm3,recomm4,recomm5,recomm6,comeback,doctor)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""".format(table_name),
+    (last_name,first_name, birthyear,birthmonth,birthday,visit_date,
+    visit_type,directed,complaints,sicktime,prev_treatment,other_illness,diabetes,infect,
+    allergy,drug_allergy,heredity,medicaments,addictions,blood_donor,loc_stat,process,
+    skin_of,symptoms,dermographism1,dermographism2,mucous_membranes,mucous_membranes2,lymph,lymph_description,
+    lymph_description1,lymph_description2,lymph_description4,lymph_description6,lymph_description5,
+    hair_description,hair_description2,nails_of,nails_desc,additional_symp,scabies_comment,diagnosis_main,form,
+    stage,code,diagnosis2,complication,treatment,treatment2,treatment3,treatment4,treatment5,treatment6,recomm,
+    recomm2,recomm3,recomm4,recomm5,recomm6,comeback,doctor))
+    connection.commit()
+    return cursor.lastrowid
+
+
 #check for necessary input to make an id
 def check_input_none(last_name, visit_date):
     c = [last_name, visit_date]
@@ -27,17 +71,6 @@ def check_dupli(list, variable):
         current_index = list.index(variable)
     return current_index
 
-def generate_id():
-    visit_id = ""
-    for x in range (6):
-        visit_id = "{}{}".format(visit_id, random.randint(0, 10))
-    visit_id = int(visit_id)
-    if visit_id not in id_taken:
-        id_taken.append(visit_id)
-        return visit_id
-    else:
-        generate_id()
-
 
 #split lines for nice pdf
 def line_splitter(entry_text):
@@ -46,7 +79,7 @@ def line_splitter(entry_text):
     return wrap_list
 
 class Visit:
-    def __init__(self, last_name: str, first_name: str, visit_id: int, birthyear: str,
+    def __init__(self, visit_id: int, last_name: str, first_name: str, birthyear: str,
     birthmonth: str,  birthday: str, visit_date: str,
     visit_type: str, directed: str, complaints: str, sicktime: str, prev_treatment: str,
     other_illness: str, diabetes: str, infect: str, allergy: str, drug_allergy: str,
@@ -61,9 +94,9 @@ class Visit:
     treatment5: str, treatment6: str, recomm: str, recomm2: str, recomm3: str,
     recomm4: str, recomm5: str, recomm6: str, comeback: str, doctor: str):
 
+            self.visit_id = visit_id
             self.last_name = last_name
             self.first_name = first_name
-            self.visit_id = visit_id
             self.birthyear = birthyear
             self.birthmonth = birthmonth
             self.birthday = birthday
@@ -136,7 +169,7 @@ def new_frame(frame, height):
     myframe1.grid(row = 0, column = 0)
     myframe1.rowconfigure(0, weight=1)
     myframe1.columnconfigure(0, weight=1)
-    mycanvas.create_window(20, 5, width = 600, height = height, window = myframe1, anchor = NW)
+    mycanvas.create_window(20, 5, width=600, height = height, window = myframe1, anchor = NW)
 
     canvbar = Scrollbar(frame, orient = "vertical", command = mycanvas.yview)
     canvbar.grid(row = 0, column = 1, sticky="ns")
@@ -151,11 +184,11 @@ def save_to_text():
     else:
         with open('unfinished_cards.txt', 'w', -1, "utf-8") as f:
             for i in saved_for_later:
+                f.write(str(i.visit_id))
+                f.write(";")
                 f.write(str(i.last_name))
                 f.write(";")
                 f.write(str(i.first_name))
-                f.write(";")
-                f.write(str(i.visit_id))
                 f.write(";")
                 f.write(str(i.birthyear))
                 f.write(";")
@@ -279,14 +312,10 @@ def save_to_text():
             f.close()
     return
 
-def on_termination():
-    save_to_text()
-    saved_for_later.clear()
-    return
-
 def launch():
     #read from text file of unfinished cards
     #load to the UI if any
+
     with open('unfinished_cards.txt', 'r', -1, "utf-8") as f:
         f1 = [line.rstrip('\n') for line in f]
     f.close()
@@ -310,8 +339,13 @@ def launch():
     #f =  open('unfinished_cards.txt', 'w', -1, "utf-8").close()
     return
 
+def on_termination():
+    save_to_text()
+    saved_for_later.clear()
+    #connection.close()
+    return
 
-def save_for_later(last_name, first_name, visit_id, birthyear,
+def save_for_later(visit_id, last_name, first_name, birthyear,
                         birthmonth,  birthday, visit_date,
                         visit_type, directed, complaints, sicktime, prev_treatment,
                         other_illness, diabetes, infect, allergy, drug_allergy,
@@ -327,7 +361,7 @@ def save_for_later(last_name, first_name, visit_id, birthyear,
                         recomm4, recomm5, recomm6, comeback, doctor):
     if visit_id ==None:
         new_id = generate_id()
-        new_visit = Visit(last_name, first_name, new_id, birthyear,
+        new_visit = Visit(new_id, last_name, first_name, birthyear,
     birthmonth,  birthday, visit_date,
                             visit_type, directed, complaints, sicktime, prev_treatment,
                             other_illness, diabetes, infect, allergy, drug_allergy,
@@ -345,20 +379,19 @@ def save_for_later(last_name, first_name, visit_id, birthyear,
     else:
         index = next(i for i, x in enumerate(saved_for_later) if x.visit_id == visit_id)
         saved_for_later.pop(index)
-        replace_visit = Visit(last_name, first_name, visit_id, birthyear,
-    birthmonth,  birthday, visit_date,
-                            visit_type, directed, complaints, sicktime, prev_treatment,
-                            other_illness, diabetes, infect, allergy, drug_allergy,
-                                heredity, medicaments, addictions, blood_donor, loc_stat,
-                                    process_characteristic, skin_of, symptoms, dermographism1, dermographism2,
-                mucous_membranes, mucous_membranes2, lymph, lymph_description,
+        replace_visit = Visit(visit_id, last_name, first_name, birthyear, birthmonth,  birthday, visit_date,
+                    visit_type, directed, complaints, sicktime, prev_treatment,
+                    other_illness, diabetes, infect, allergy, drug_allergy,
+                    heredity, medicaments, addictions, blood_donor, loc_stat,
+                    process_characteristic, skin_of, symptoms, dermographism1, dermographism2,
+                    mucous_membranes, mucous_membranes2, lymph, lymph_description,
                     lymph_description1, lymph_description2, lymph_description4,
                     lymph_description6, lymph_description5, hair_description,
-                                                        hair_description2, nails_of, nails_desc, additional_symp,
-                                                        tkvr, diagnosis_main, form, stage, code, diagnosis2,
-                                                        complication, treatment, treatment2, treatment3, treatment4,
-                                                        treatment5, treatment6, recomm, recomm2, recomm3,
-                                                        recomm4, recomm5, recomm6, comeback, doctor)
+                    hair_description2, nails_of, nails_desc, additional_symp,
+                    tkvr, diagnosis_main, form, stage, code, diagnosis2,
+                    complication, treatment, treatment2, treatment3, treatment4,
+                    treatment5, treatment6, recomm, recomm2, recomm3,
+                    recomm4, recomm5, recomm6, comeback, doctor)
         saved_for_later.append(replace_visit)
     return
 
@@ -394,25 +427,12 @@ for i in range(1,  13):
 days = []
 for i in range(1,  32):
     days.append(i)
-'''
-def find_patient_in_db(last_name,  value): #standard search by last name
-    c.execute("""SELECT * FROM patients_and_visits WHERE last_name MATCH value""")
-    #c.execute(search for the patient)
-    #if found: retrieve
-    return
 
-def add_patient_to_db(input_visit_date,  input_name,  input_birthdate,  number_of_visits,  input_illness_description,  input_diagnosis,  input_treatment):
-#program somewhere that some values could be null
-#call find_patient_in_db - if not found,  proceed
-#if found: show data
-#call the class object
-#assign VALUES
-#add to the database
-    return
+#------------------------DB FUNCTIONS-------------------------------------------
 
-def delete_patient_db(search_by,  value):
+#def delete_patient_db(search_by,  value):
     #execute(select from and delete)
-    return
+    #return
 
-def clean_name(some_var):
-    return ''.join(char for char in some_var if char.isalnum())'''
+#def clean_name(some_var):
+#    return ''.join(char for char in some_var if char.isalnum())'''

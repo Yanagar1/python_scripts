@@ -12,20 +12,89 @@ def mainwin():
     frame.place(x=0, y=60)
     #frame.grid(sticky='news')
     main_menu.winfo_toplevel().title("Мои Пациенты")
+    #check connection for none
+    connection = create_connection()
+
 
     def clear_frame():
         for widget in frame.winfo_children():
             widget.destroy()
         return
 
+    def search(last_name, first_name, birthyear, birthmonth, birthday, visit_date, diagnosis_main, code):
+        #analyze input and make command
+        search_parameters =[last_name, first_name, birthyear, birthmonth, birthday, visit_date, diagnosis_main, code]
+        search_parameters2=[]
+        for i in search_parameters:
+            if len(i)!=0:
+                search_parameters2.append(i)
+        print(search_parameters2)
+        return
+    '''    connection.execute(("""SELECT * FROM visits WHERE last_name = {} AND
+                                                        first_name = {} AND
+                                                        birthyear  = {} AND
+                                                        birthmonth = {} AND
+                                                        birthday = {} AND
+                                                        visit_date  = {} AND
+                                                        diagnosis_main = {} AND
+                                                        code = {}""").format(last_name, first_name, birthyear, birthmonth, birthday,visit_date, diagnosis_main, code))
+        connection.commit()'''
+
+
     #function to call as the main button is pressed (search database)
+    #creates entries for search
     def call_search():
         clear_frame()
+        name_label1 = Label(frame, text="Фамилия", background = "snow")
+        name_label2 = Label(frame, text="Имя", background = "snow")
+        birthdate_label = Label(frame, text="Дата Рождения", background = "snow")
+        visit_date_label = Label(frame, text="Дата визита", background = "snow")
+        diagnosis_label = Label(frame, text="Диагноз основной", background = "snow")
+        code_label = Label(frame, text="Код МКБ", background = "snow")
+        name_entry1 = Entry(frame, width = 30)
+        name_entry2 = Entry(frame, width = 30)
+        tkvar_y = IntVar(frame)
+        tkvar_m = IntVar(frame)
+        tkvar_d = IntVar(frame)
+        tkvar_y = StringVar(frame)
+        birthyear = OptionMenu(frame, tkvar_y, *years)
+        tkvar_m = StringVar(frame)
+        birthmonth = OptionMenu(frame, tkvar_m, *months)
+        tkvar_d = StringVar(frame)
+        birthday = OptionMenu(frame, tkvar_d, *days)
+        visit_date = Entry(frame, width = 30)
+        diagnosis = Entry(frame, width = 30)
+        code = Entry(frame, width = 30)
+        name_label1.grid(row=0, column = 0, sticky = W)
+        name_entry1.grid(row=0, column = 1, columnspan=2)
+        name_label2.grid(row=1, column = 0, sticky = W)
+        name_entry2.grid(row=1, column = 1, columnspan=2)
+        birthdate_label.grid(row = 2, column = 0, sticky = W)
+        birthyear.grid(row=2, column =1,sticky = W)
+        birthmonth.grid(row=2, column =1)
+        birthday.grid(row=2, column =1,sticky = E)
+        visit_date_label.grid(row=3, column = 0, sticky = W)
+        visit_date.grid(row=3, column=1, columnspan=2)
+        diagnosis_label.grid(row=4, column = 0, sticky = W)
+        diagnosis.grid(row=4, column = 1, sticky="ew", columnspan=2)
+        code_label.grid(row=5, column = 0, sticky = W)
+        code.grid(row=5, column = 1, columnspan=2)    #search_form()
+
+        search_button = Button(frame, text = "Поиск", fg = "green", background = "snow",
+        command = lambda: search(name_entry1.get(), name_entry2.get(),
+        tkvar_y.get(),tkvar_m.get(),tkvar_d.get(),
+        visit_date.get(),diagnosis.get(),code.get())).grid(row=6, column = 1)
+            #found entries in a table
+            #each is selectable
+            #if any is selected:
+                            # button edit => call_form() save overwrite
+                            # button delete from db
+
         return
 
     #saves Visit class object to the saved_for_later list
     #is called when save_for_later button is pressed
-    def saved_for_later_report(last_name, first_name, visit_id, birthyear,
+    def save_and_report(later_param, visit_id, last_name, first_name, birthyear,
                             birthmonth,  birthday, visit_date,
                             visit_type, directed, complaints, sicktime, prev_treatment,
                             other_illness, diabetes, infect, allergy, drug_allergy,
@@ -40,30 +109,36 @@ def mainwin():
                             treatment5, treatment6, recomm, recomm2, recomm3,
                             recomm4, recomm5, recomm6, comeback, doctor):
         if check_input_none(last_name, visit_date) == 1:
-            save_for_later(last_name, first_name, visit_id, birthyear,
-                                    birthmonth,  birthday, visit_date,
-                                    visit_type, directed, complaints, sicktime, prev_treatment,
-                                    other_illness, diabetes, infect, allergy, drug_allergy,
-                                    heredity, medicaments, addictions, blood_donor, loc_stat,
-                                    process_characteristic, skin_of, symptoms, dermographism1, dermographism2,
-                                    mucous_membranes, mucous_membranes2, lymph, lymph_description,
-                                    lymph_description1, lymph_description2, lymph_description4,
-                                    lymph_description6, lymph_description5, hair_description,
-                                    hair_description2, nails_of, nails_desc, additional_symp,
-                                    tkvr, diagnosis_main, form, stage, code, diagnosis2,
-                                    complication, treatment, treatment2, treatment3, treatment4,
-                                    treatment5, treatment6, recomm, recomm2, recomm3,
-                                    recomm4, recomm5, recomm6, comeback, doctor)
+            if later_param == 1:
+                report_text = "Карта сохранена на потом!"
+                table_name="not_finished"
+            else:
+                report_text ="Карта сохранена!"
+                table_name = "visits"
+                delete_from_saved_for_later(visit_id)
+            add_patient_to_db(connection, table_name, last_name, first_name, birthyear,
+                                        birthmonth,  birthday, visit_date,
+                                        visit_type, directed, complaints, sicktime, prev_treatment,
+                                        other_illness, diabetes, infect, allergy, drug_allergy,
+                                        heredity, medicaments, addictions, blood_donor, loc_stat,
+                                        process_characteristic, skin_of, symptoms, dermographism1, dermographism2,
+                                        mucous_membranes, mucous_membranes2, lymph, lymph_description,
+                                        lymph_description1, lymph_description2, lymph_description4,
+                                        lymph_description6, lymph_description5, hair_description,
+                                        hair_description2, nails_of, nails_desc, additional_symp,
+                                        tkvr, diagnosis_main, form, stage, code, diagnosis2,
+                                        complication, treatment, treatment2, treatment3, treatment4,
+                                        treatment5, treatment6, recomm, recomm2, recomm3,
+                                        recomm4, recomm5, recomm6, comeback, doctor)
             clear_frame()
-            report = Label(frame, text = "Карта сохранена на потом!", height = 7, width = 25, borderwidth = 4, relief = "groove", background = "snow")
-            report.place(x=250, y = 150)
+            messagebox.showinfo("Ok", report_text)
             return
         else:
             messagebox.showerror("Проблема", "Нужна фамилия и дата визита, чтобы сохранить и не запутаться!")
 
 #helper
 
-    def create_pdf(last_name, visit_date, visit_id, visit_type, directed, complaints, sicktime, prev_treatment,
+    def create_pdf(visit_id, last_name, visit_date, visit_type, directed, complaints, sicktime, prev_treatment,
     other_illness, diabetes, infect, allergy, drug_allergy,
     heredity, medicaments, addictions, blood_donor, loc_stat,
     process_characteristic, skin_entry, symptoms, dermographism1, dermographism2,
@@ -76,8 +151,15 @@ def mainwin():
     treatment5, treatment6, recomm, recomm2, recomm3,
     recomm4, recomm5, recomm6, comeback, doctor):
 
+        def print_if_not_empty(entry_name, width, new_line):
+            if len(entry_name)!=0:
+                pdf.cell(width, 4, txt= entry_name, ln = new_line)
+                return 1
+            else:
+                return 0
         folder_selected = filedialog.askdirectory()
         pdf = FPDF(orientation='P', unit='mm', format='A4')
+        pdf.set_margins(7, 5)
         pdf.set_auto_page_break(True, margin = 150)
         pdf.add_page()
         pdf.add_font('DejaVu', '', 'DejaVuSerif.ttf', uni=True)
@@ -154,7 +236,6 @@ def mainwin():
             pdf.cell(0, 4, txt = str(i), ln = 1)
 
         pdf.cell(0, 4, txt="Кожный патологический процесс:", border = "B", ln=1, align="C")
-
         process=', '.join(process_characteristic)
         if len(process)==0:
             new_line = 1
@@ -169,8 +250,11 @@ def mainwin():
         pdf.cell(50, 4, txt="На коже", border = "B", ln=0)
         pdf.cell(0, 4, txt= skin_entry, ln = 1)
 
-        pdf.cell(50, 4, txt="Высыпания представлены", border = "B",ln=0)
-        pdf.cell(0, 4, txt= symptoms, ln = 1)
+        if len(symptoms)==0:
+            new_line = 1
+        else:
+            new_line = 0
+        pdf.cell(50, 4, txt="Высыпания представлены", border = "B",ln=new_line)
         m = line_splitter(symptoms)
         for i in m:
             pdf.cell(0, 4, txt = i, ln = 1)
@@ -183,14 +267,18 @@ def mainwin():
         pdf.cell(45, 4, txt = mucous_membranes, ln = 0)
         pdf.cell(0, 4, txt= mucous_membranes2, ln = 1)
 
-        pdf.cell(50, 4, txt="Лимфатические узлы", border = "B",ln=0)
-        pdf.cell((len(lymph)+5)*2, 4, txt = lymph, ln = 0)
-        pdf.cell(0, 4, txt = lymph_description, ln = 1)
-        pdf.cell((len(lymph)+5)*2, 4, txt = lymph_description1, ln = 0)
-        pdf.cell(0, 4, txt = lymph_description2, ln = 1)
-        pdf.cell(50, 4, txt = lymph_description4, ln = 0)
-        pdf.cell(50, 4, txt = lymph_description6, ln = 0)
-        pdf.cell(0, 4, txt= lymph_description5, ln = 1)
+        if len(lymph)==0:
+            new_line = 1
+        else:
+            new_line = 0
+        pdf.cell(50, 4, txt="Лимфатические узлы", border = "B",ln=new_line)
+        new_line =print_if_not_empty(lymph, (len(lymph)+5)*2, 0)
+        new_line =print_if_not_empty(lymph_description, 0, new_line)
+        new_line =print_if_not_empty(lymph_description1, (len(lymph)+5)*2, new_line)
+        new_line =print_if_not_empty(lymph_description2, 0, new_line)
+        print_if_not_empty(lymph_description4, 50, 0)
+        print_if_not_empty(lymph_description6, 50, 0)
+        print_if_not_empty(lymph_description4, 0, 1)
 
         pdf.cell(50, 4, txt="Оволосение по типу: ", border = "B",ln=0)
         pdf.cell(0, 4, txt= hair_description, ln = 1)
@@ -240,26 +328,21 @@ def mainwin():
         pdf.cell(50, 4, txt="Осложнения",border = "B", ln=0)
         pdf.cell(0, 4, txt= complication, ln = 1)
 
-        def print_if_not_empty(entry_name):
-            if len(entry_name)>2:
-                pdf.cell(0, 4, txt= entry_name, ln = 1)
-            return
-
         pdf.cell(0, 4, txt="План обследования", border = "B", ln=1, align="C")
         pdf.cell(0, 4, txt=treatment, ln = 1)
         pdf.cell(0, 4, txt= treatment2, ln = 1)
-        print_if_not_empty(treatment3)
-        print_if_not_empty(treatment4)
-        print_if_not_empty(treatment5)
-        print_if_not_empty(treatment6)
+        print_if_not_empty(treatment3, 0, 1)
+        print_if_not_empty(treatment4, 0, 1)
+        print_if_not_empty(treatment5, 0, 1)
+        print_if_not_empty(treatment6, 0, 1)
 
         pdf.cell(0, 4, txt="Рекомендации", border = "B",ln=1, align="C")
         pdf.cell(0, 4, txt= recomm, ln = 1)
         pdf.cell(0, 4, txt= recomm2, ln = 1)
-        print_if_not_empty(recomm3)
-        print_if_not_empty(recomm4)
-        print_if_not_empty(recomm5)
-        print_if_not_empty(recomm6)
+        print_if_not_empty(recomm3, 0, 1)
+        print_if_not_empty(recomm4, 0, 1)
+        print_if_not_empty(recomm5, 0, 1)
+        print_if_not_empty(recomm6, 0, 1)
 
         pdf.cell(60, 4, txt="Повторная явка", border = "B", ln=0)
         pdf.cell(0, 4, txt= comeback, ln = 1)
@@ -433,16 +516,8 @@ def mainwin():
             nails.insert(0, "не изменены")
             treatment.insert(0, "1.")
             treatment2.insert(0, "2.")
-            treatment3.insert(0, "3.")
-            treatment4.insert(0, "4.")
-            treatment5.insert(0, "5.")
-            treatment6.insert(0, "6.")
             recomm.insert(0, "1. Режим")
             recomm2.insert(0, "2. Диета")
-            recomm3.insert(0, "3.")
-            recomm4.insert(0, "4.")
-            recomm5.insert(0, "5.")
-            recomm6.insert(0, "6.")
             doctor.insert(0, "Большева А. А.")
         else:
             #find the index of the needed visit by visit_id in saved for later
@@ -641,8 +716,8 @@ def mainwin():
         doctor_label.grid(row=51, column = 0)
         doctor.grid(row = 51, column = 1)
 
-        save_button = Button(myframe1, text = "Сохранить на потом", fg = "red", background = "snow",
-        command = lambda: saved_for_later_report(name_entry1.get(), name_entry2.get(), visit_id_in,
+        save_button = Button(myframe1, text = "Сохранить на потом", fg = "green", background = "snow",
+        command = lambda: save_and_report(1, visit_id_in, name_entry1.get(), name_entry2.get(),
         tkvar_y.get(),tkvar_m.get(),tkvar_d.get(),
         visit_date.get(),tkvar_visit_type.get(),directed.get(),
         complaints.get(),sicktime_entry1.get(),
@@ -664,11 +739,9 @@ def mainwin():
         recomm4.get(),recomm5.get(),recomm6.get(),
         comeback.get(),doctor.get())).grid(row=1, column = 2)
 
-        #mycanvas.configure(scrollregion=mycanvas.bbox("all"))
 
-        #save: write to db and delete from the saved_for_later list
-        print_pdf_button = Button(myframe1, text = "Создать PDF", fg = "red", background = "snow",
-        command = lambda: create_pdf(name_entry1.get(), visit_date.get(), visit_id_in, tkvar_visit_type.get(),
+        print_pdf_button = Button(myframe1, text = "Создать PDF", fg = "green", background = "snow",
+        command = lambda: create_pdf(visit_id_in, name_entry1.get(), visit_date.get(), tkvar_visit_type.get(),
         directed.get(), complaints.get(),sicktime_entry1.get(),
         prev_treatment.get(),other_illness.get(),
         diabetes_var.get(),infect.get(),allergy.get(),
@@ -688,22 +761,35 @@ def mainwin():
         recomm4.get(),recomm5.get(),recomm6.get(),
         comeback.get(),doctor.get())).grid(row=52, column = 0, columnspan = 3)
 
-        def call_delete_from_saved_for_later(visit_id):
-            delete_from_saved_for_later(visit_id)
-            clear_frame()
-            return
-
-        delete_button = Button(myframe1, text="удалить из незавершенных карт",fg = "red", background = "snow",
-        command = lambda: call_delete_from_saved_for_later(visit_id_in))
-        delete_button.grid(row=53, column = 0, columnspan = 3 )
+        save_todb_button = Button(myframe1, text="Сохранить",fg = "green", background = "snow",
+        command = lambda: save_and_report(0, visit_id_in, name_entry1.get(), name_entry2.get(),
+        tkvar_y.get(),tkvar_m.get(),tkvar_d.get(),
+        visit_date.get(),tkvar_visit_type.get(),directed.get(),
+        complaints.get(),sicktime_entry1.get(),
+        prev_treatment.get(),other_illness.get(),
+        diabetes_var.get(),infect.get(),allergy.get(),
+        drug_allergy.get(),inher.get(),med.get(),
+        addict.get(),tkvar_blood_donor.get(),loc_stat.get(),
+        read_selected_items(), skin_entry.get(),
+        symptoms.get(),tkvar_derm.get(),tkvar_derm2.get(),
+        tkvar_surf.get(),tkvar_surf2.get(),
+        lymph.get(),tkvar_l3.get(),
+        ll1.get(),ll2.get(),tkvar_l4.get(),ll6.get(),
+        tkvar_l5.get(),tkvar_l7.get(),hair3.get(),tkvar_nails.get(), nails.get(),
+        add_symp.get(),tkvr.get(),diagnosis.get(),
+        form.get(),stage.get(),code.get(),
+        diagnosis2.get(),complication.get(),treatment.get(), treatment2.get(),
+        treatment3.get(),treatment4.get(),treatment5.get(),treatment6.get(),
+        recomm.get(),recomm2.get(),recomm3.get(),
+        recomm4.get(),recomm5.get(),recomm6.get(),
+        comeback.get(),doctor.get()))
+        save_todb_button.grid(row=53, column = 0, columnspan = 3 )
         return
 
 
     def call_saved_for_later():
         clear_frame()
         myframe1 = new_frame(frame, (len(saved_for_later)+1)*100)
-        save_current_progress_button = Button(myframe1, text = "Back up data", fg = "red", background = "snow", command=save_to_text)
-        save_current_progress_button.pack()
         for i in range(len(saved_for_later)):
             name_button = Button(myframe1, text = saved_for_later[i].last_name, background = "snow", command= lambda i=i: call_form(saved_for_later[i].visit_id))
             name_button.pack()
