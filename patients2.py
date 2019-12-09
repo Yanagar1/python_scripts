@@ -7,8 +7,21 @@ from fpdf import FPDF
 from textwrap import *
 import random
 import atexit
+from PIL import ImageTk,Image
 
-id_taken = []
+saved_for_later = []
+list_of_found_entries=[]
+
+
+
+#determines the longest entry in the list and returns number to adjust window width
+def find_longest(list):
+    longest = 60 #min for neat output
+    for i in range(len(list)):
+        length_i = len(list[i].last_name)+len(list[i].first_name)+len(list[i].birthyear)+len(list[i].visit_date)+len(list[i].diagnosis_main)+len(list[i].code)
+        if length_i >= longest:
+            longest = length_i
+    return longest
 
 #------------------------DB FUNCTIONS-------------------------------------------
 
@@ -24,22 +37,21 @@ def create_connection():
 #writes patient to any table
 def add_patient_to_db(connection, table_name, last_name,first_name, birthyear,birthmonth,birthday,visit_date,
 visit_type,directed,complaints,sicktime,prev_treatment,other_illness,diabetes,infect,
-allergy,drug_allergy,heredity,medicaments,addictions,blood_donor,loc_stat,process_characteristic,
+allergy,drug_allergy,heredity,medicaments,addictions,blood_donor,loc_stat,process,
 skin_of,symptoms,dermographism1,dermographism2,mucous_membranes,mucous_membranes2,lymph,lymph_description,
 lymph_description1,lymph_description2,lymph_description4,lymph_description6,lymph_description5,
 hair_description,hair_description2,nails_of,nails_desc,additional_symp,scabies_comment,diagnosis_main,form,
 stage,code,diagnosis2,complication,treatment,treatment2,treatment3,treatment4,treatment5,treatment6,recomm,
 recomm2,recomm3,recomm4,recomm5,recomm6,comeback,doctor):
     cursor = connection.cursor()
-    process=', '.join(process_characteristic)
-    cursor.execute("""INSERT INTO {}(last_name,first_name, birthyear,birthmonth,birthday,visit_date,
-    visit_type,directed,complaints,sicktime,prev_treatment,other_illness,diabetes,infections,
-    allergy,drug_allergy,heredity,medicaments,addictions,blood_donor,loc_stat,process_characteristic,
-    skin_of,symptoms,dermographism1,dermographism2,mucous_membranes,mucous_membranes2,lymph,lymph_description,
-    lymph_description1,lymph_description2,lymph_description4,lymph_description6,lymph_description5,
-    hair_description,hair_description2,nails_of,nails_desc,additional_symp,scabies_comment,diagnosis_main,form,
-    stage,code,diagnosis2,complication,treatment,treatment2,treatment3,treatment4,treatment5,treatment6,recomm,
-    recomm2,recomm3,recomm4,recomm5,recomm6,comeback,doctor)
+    cursor.execute("""INSERT INTO {}(Фамилия, Имя, Год_Рождения, Месяц_Рождения, День_Рождения, Дата_визита,
+    Тип_визита,Направлен,Жалобы,Болен,Лечение_Самолечение,Сопутствующие_заболевания,Сахарный_диабет,Инфекционные_заболевания,
+    Пищевая_аллергия,Лекарственная_непереносимость,Наследственность,препараты,Вредные_привычки,Донор,Локальный_статус,Характер_процесса,
+    На_коже,Высыпания_представлены,Дермографизм1,Дермографизм2,Слизистые,Слизистые2,Лимфузлы,Лимфузлы0,
+    Лимфузлы1,Лимфузлы2,Лимфузлы4,Лимфузлы6,Лимфузлы5,
+    Оволосение,Волосы,Ногктевые_пластины,Ногктевые_пластины2,Доп_симптомы,чесотка_педикулез,Диагноз_основной,Форма,
+    Стадия,Код_МКБ,Диагноз_сопутствующий,Осложнения,treatment,treatment2,treatment3,treatment4,treatment5,treatment6,recomm,
+    recomm2,recomm3,recomm4,recomm5,recomm6,Повторная_явка,Врач)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""".format(table_name),
     (last_name,first_name, birthyear,birthmonth,birthday,visit_date,
     visit_type,directed,complaints,sicktime,prev_treatment,other_illness,diabetes,infect,
@@ -50,10 +62,117 @@ recomm2,recomm3,recomm4,recomm5,recomm6,comeback,doctor):
     stage,code,diagnosis2,complication,treatment,treatment2,treatment3,treatment4,treatment5,treatment6,recomm,
     recomm2,recomm3,recomm4,recomm5,recomm6,comeback,doctor))
     connection.commit()
+    cursor.close()
     return cursor.lastrowid
 
 
-#check for necessary input to make an id
+def overwrite_patient(connection, table_name, visit_id_in, last_name, first_name, birthyear,
+                        birthmonth,  birthday, visit_date,
+                        visit_type, directed, complaints, sicktime, prev_treatment,
+                        other_illness, diabetes, infect, allergy, drug_allergy,
+                        heredity, medicaments, addictions, blood_donor, loc_stat,
+                        process, skin_of, symptoms, dermographism1, dermographism2,
+                        mucous_membranes, mucous_membranes2, lymph, lymph_description,
+                        lymph_description1, lymph_description2, lymph_description4,
+                        lymph_description6, lymph_description5, hair_description,
+                        hair_description2, nails_of, nails_desc, additional_symp,
+                        scabies_comment, diagnosis_main, form, stage, code, diagnosis2,
+                        complication, treatment, treatment2, treatment3, treatment4,
+                        treatment5, treatment6, recomm, recomm2, recomm3,
+                        recomm4, recomm5, recomm6, comeback, doctor):
+    cursor = connection.cursor()
+    cursor.execute("""UPDATE {} SET Фамилия = ?, Имя=?, Год_Рождения=?, Месяц_Рождения=?, День_Рождения=?, Дата_визита=?,
+    Тип_визита=?,Направлен=?,Жалобы=?,Болен=?,Лечение_Самолечение=?,Сопутствующие_заболевания=?,Сахарный_диабет=?,Инфекционные_заболевания=?,
+    Пищевая_аллергия=?,Лекарственная_непереносимость=?,Наследственность=?,препараты=?,Вредные_привычки=?,Донор=?,Локальный_статус=?,Характер_процесса=?,
+    На_коже=?,Высыпания_представлены=?,Дермографизм1=?,Дермографизм2=?,Слизистые=?,Слизистые2=?,Лимфузлы=?,Лимфузлы0=?,
+    Лимфузлы1=?,Лимфузлы2=?,Лимфузлы4=?,Лимфузлы6=?, Лимфузлы5=?,
+    Оволосение=?,Волосы=?,Ногктевые_пластины=?,Ногктевые_пластины2=?,Доп_симптомы=?,чесотка_педикулез=?,Диагноз_основной=?,Форма=?,
+    Стадия=?,Код_МКБ=?,Диагноз_сопутствующий=?,Осложнения=?,treatment=?,treatment2=?,treatment3=?,treatment4=?,treatment5=?,treatment6=?,recomm=?,
+    recomm2=?,recomm3=?,recomm4=?,recomm5=?,recomm6=?,Повторная_явка=?,Врач=? WHERE id = ?""".format(table_name),
+    (last_name,first_name, birthyear,birthmonth,birthday,visit_date,
+    visit_type,directed,complaints,sicktime,prev_treatment,other_illness,diabetes,infect,
+    allergy,drug_allergy,heredity,medicaments,addictions,blood_donor,loc_stat,process,
+    skin_of,symptoms,dermographism1,dermographism2,mucous_membranes,mucous_membranes2,lymph,lymph_description,
+    lymph_description1,lymph_description2,lymph_description4,lymph_description6,lymph_description5,
+    hair_description,hair_description2,nails_of,nails_desc,additional_symp,scabies_comment,diagnosis_main,form,
+    stage,code,diagnosis2,complication,treatment,treatment2,treatment3,treatment4,treatment5,treatment6,recomm,
+    recomm2,recomm3,recomm4,recomm5,recomm6,comeback,doctor, visit_id_in))
+    connection.commit()
+    cursor.close()
+    return
+
+
+def delete_entry_from_db(connection, table_name, visit_id):
+    #check if the id value is there
+    cur = connection.cursor()
+    cur.execute("DELETE FROM "+ table_name+ " WHERE id = ?", (visit_id,))
+    connection.commit()
+    cur.close()
+    return
+
+
+def search_args_to_command(connection, last_name, first_name, birthyear, visit_date, diagnosis, code):
+    columnnames = ["Фамилия","Имя","Год_Рождения","Дата_визита","Диагноз_основной", "Код_МКБ"]
+    columnnames1=[]
+    args = [last_name, first_name, birthyear, visit_date, diagnosis, code]
+    args1=[]
+    for i in range(len(args)):
+        if len(str(args[i]))!=0:
+            args1.append(args[i])
+            columnnames1.append(columnnames[i])
+    if len(args1)==0:
+        string = "SELECT * from visits"
+    else:
+        string = "SELECT * from visits WHERE "
+        i = 0
+        while i < (len(args1)-1):
+            string = string + columnnames1[i]+ '='+"'" + str(args1[i])+"'"+ " AND "
+            i+=1
+        string = string + columnnames1[len(columnnames1)-1]+ '= '+"'"+ args1[len(args1)-1]+"'"
+    return string
+
+
+def look_db(connection, exec_string):
+    cur = connection.cursor()
+    cur.execute(exec_string)
+    output = cur.fetchall()
+    connection.commit()
+    cur.close()
+    return output
+
+
+def on_termination(connection):
+    connection.commit()
+    connection.close()
+    return
+
+
+def convert_db_entry_to_class(m, from_table): #m is tuple from db
+    for i in m:
+        new_visit = Visit(from_table, m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11],
+        m[12], m[13], m[14], m[15], m[16], m[17], m[18], m[19], m[20],
+        m[21], m[22], m[23], m[24], m[25], m[26], m[27], m[28], m[29], m[30], m[31], m[32], m[33],
+        m[34], m[35], m[36], m[37], m[38], m[39], m[40], m[41], m[42], m[43], m[44], m[45], m[46],
+        m[47], m[48], m[49], m[50], m[51], m[52], m[53], m[54], m[55], m[56], m[57], m[58], m[59], m[60], m[61])
+    return new_visit
+
+
+def append_saved_for_later(connection):
+    #read_from_db
+    #load_to_class list
+    saved_for_later.clear()
+    cur = connection.cursor()
+    cur.execute("""SELECT * FROM not_finished""")
+    rows = cur.fetchall()
+    for row in rows:
+        visit = convert_db_entry_to_class(row, "not_finished")
+        saved_for_later.append(visit)
+    connection.commit()
+    cur.close()
+    return
+
+
+
 def check_input_none(last_name, visit_date):
     c = [last_name, visit_date]
     for i in c:
@@ -72,14 +191,8 @@ def check_dupli(list, variable):
     return current_index
 
 
-#split lines for nice pdf
-def line_splitter(entry_text):
-    my_wrap = TextWrapper(width = 90)
-    wrap_list = my_wrap.wrap(text=entry_text)
-    return wrap_list
-
 class Visit:
-    def __init__(self, visit_id: int, last_name: str, first_name: str, birthyear: str,
+    def __init__(self, from_table: str, visit_id: int, last_name: str, first_name: str, birthyear: str,
     birthmonth: str,  birthday: str, visit_date: str,
     visit_type: str, directed: str, complaints: str, sicktime: str, prev_treatment: str,
     other_illness: str, diabetes: str, infect: str, allergy: str, drug_allergy: str,
@@ -94,6 +207,7 @@ class Visit:
     treatment5: str, treatment6: str, recomm: str, recomm2: str, recomm3: str,
     recomm4: str, recomm5: str, recomm6: str, comeback: str, doctor: str):
 
+            self.from_table = from_table
             self.visit_id = visit_id
             self.last_name = last_name
             self.first_name = first_name
@@ -157,255 +271,213 @@ class Visit:
             self.comeback = comeback
             self.doctor = doctor
 
-saved_for_later = []
 
 #creates new scrollable frame
-def new_frame(frame, height):
+def new_frame(frame, height, start_row, columnspan, canvas_height, scrollregion_w, scrollregion_h):
     #canvas, frame, window, scroll
-    mycanvas = Canvas(frame, width=600, height=500, scrollregion=(0,0,680, 500))
-    mycanvas.grid(row=0, column=0, sticky="nsew")
+    mycanvas = Canvas(frame, width=600, height=canvas_height, scrollregion=(0,0,scrollregion_w, scrollregion_h))
+    mycanvas.grid(row=start_row, column=0, columnspan = columnspan, sticky="nsew")
 
-    myframe1 = Frame(mycanvas, width=600, height=500, background = "snow")
-    myframe1.grid(row = 0, column = 0)
+    myframe1 = Frame(mycanvas, width=600, height=height, background = "#ffffff")
+    myframe1.grid(row = start_row, column = 0, columnspan = columnspan)
     myframe1.rowconfigure(0, weight=1)
     myframe1.columnconfigure(0, weight=1)
     mycanvas.create_window(20, 5, width=600, height = height, window = myframe1, anchor = NW)
 
     canvbar = Scrollbar(frame, orient = "vertical", command = mycanvas.yview)
-    canvbar.grid(row = 0, column = 1, sticky="ns")
+    canvbar.grid(row = start_row, column = columnspan+1, sticky="ns")
     mycanvas.configure(yscrollcommand = canvbar.set)
     mycanvas.configure(scrollregion=mycanvas.bbox("all"))
     return myframe1
 
-def save_to_text():
-    #unfinished cards write to a text file
-    if len(saved_for_later)==0:
-        return
-    else:
-        with open('unfinished_cards.txt', 'w', -1, "utf-8") as f:
-            for i in saved_for_later:
-                f.write(str(i.visit_id))
-                f.write(";")
-                f.write(str(i.last_name))
-                f.write(";")
-                f.write(str(i.first_name))
-                f.write(";")
-                f.write(str(i.birthyear))
-                f.write(";")
-                f.write(str(i.birthmonth))
-                f.write(";")
-                f.write(str(i.birthday))
-                f.write(";")
-                f.write(str(i.visit_date))
-                f.write(";")
-                f.write(str(i.visit_type))
-                f.write(";")
-                f.write(str(i.directed))
-                f.write(";")
-                f.write(str(i.complaints))
-                f.write(";")
-                f.write(str(i.sicktime))
-                f.write(";")
-                f.write(str(i.prev_treatment))
-                f.write(";")
-                f.write(str(i.other_illness))
-                f.write(";")
-                f.write(str(i.diabetes))
-                f.write(";")
-                f.write(str(i.infect))
-                f.write(";")
-                f.write(str(i.allergy))
-                f.write(";")
-                f.write(str(i.drug_allergy))
-                f.write(";")
-                f.write(str(i.heredity))
-                f.write(";")
-                f.write(str(i.medicaments))
-                f.write(";")
-                f.write(str(i.addictions))
-                f.write(";")
-                f.write(str(i.blood_donor))
-                f.write(";")
-                f.write(str(i.loc_stat))
-                f.write(";")
-                process=', '.join(i.process_characteristic)
-                f.write(process)
-                f.write(";")
-                f.write(str(i.skin_of))
-                f.write(";")
-                f.write(str(i.symptoms))
-                f.write(";")
-                f.write(str(i.dermographism1))
-                f.write(";")
-                f.write(str(i.dermographism2))
-                f.write(";")
-                f.write(str(i.mucous_membranes))
-                f.write(";")
-                f.write(str(i.mucous_membranes2))
-                f.write(";")
-                f.write(str(i.lymph))
-                f.write(";")
-                f.write(str(i.lymph_description))
-                f.write(";")
-                f.write(str(i.lymph_description1))
-                f.write(";")
-                f.write(str(i.lymph_description2))
-                f.write(";")
-                f.write(str(i.lymph_description4))
-                f.write(";")
-                f.write(str(i.lymph_description6))
-                f.write(";")
-                f.write(str(i.lymph_description5))
-                f.write(";")
-                f.write(str(i.hair_description))
-                f.write(";")
-                f.write(str(i.hair_description2))
-                f.write(";")
-                f.write(str(i.nails_of))
-                f.write(";")
-                f.write(str(i.nails_desc))
-                f.write(";")
-                f.write(str(i.additional_symp))
-                f.write(";")
-                f.write(str(i.scabies_comment))
-                f.write(";")
-                f.write(str(i.diagnosis_main))
-                f.write(";")
-                f.write(str(i.form))
-                f.write(";")
-                f.write(str(i.stage))
-                f.write(";")
-                f.write(str(i.code))
-                f.write(";")
-                f.write(str(i.diagnosis2))
-                f.write(";")
-                f.write(str(i.complication))
-                f.write(";")
-                f.write(str(i.treatment))
-                f.write(";")
-                f.write(str(i.treatment2))
-                f.write(";")
-                f.write(str(i.treatment3))
-                f.write(";")
-                f.write(str(i.treatment4))
-                f.write(";")
-                f.write(str(i.treatment5))
-                f.write(";")
-                f.write(str(i.treatment6))
-                f.write(";")
-                f.write(str(i.recomm))
-                f.write(";")
-                f.write(str(i.recomm2))
-                f.write(";")
-                f.write(str(i.recomm3))
-                f.write(";")
-                f.write(str(i.recomm4))
-                f.write(";")
-                f.write(str(i.recomm5))
-                f.write(";")
-                f.write(str(i.recomm6))
-                f.write(";")
-                f.write(str(i.comeback))
-                f.write(";")
-                f.write(str(i.doctor))
-                f.write("\n")
-            f.close()
-    return
+def create_pdf(last_name, visit_date, visit_type, directed, complaints, sicktime, prev_treatment,
+other_illness, diabetes, infect, allergy, drug_allergy,
+heredity, medicaments, addictions, blood_donor, loc_stat,
+process_characteristic, skin_entry, symptoms, dermographism1, dermographism2,
+mucous_membranes, mucous_membranes2, lymph, lymph_description,
+lymph_description1, lymph_description2, lymph_description4,
+lymph_description6, lymph_description5, hair_description,
+hair_description2, nails_of, nails_desc, additional_symp,
+tkvr, diagnosis_main, form, stage, code, diagnosis2,
+complication, treatment, treatment2, treatment3, treatment4,
+treatment5, treatment6, recomm, recomm2, recomm3,
+recomm4, recomm5, recomm6, comeback, doctor):
 
-def launch():
-    #read from text file of unfinished cards
-    #load to the UI if any
 
-    with open('unfinished_cards.txt', 'r', -1, "utf-8") as f:
-        f1 = [line.rstrip('\n') for line in f]
-    f.close()
-    #print(os.stat('unfinished_cards.txt').st_size)
-    #if os.stat('unfinished_cards.txt').st_size<=3:
-    #    return
-#    else:
-    for i in f1:
-        m = i.split(";")
-        if len(m)==62:
-            #create visit with read strings
-            new_visit = Visit(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11],
-            m[12], m[13], m[14], m[15], m[16], m[17], m[18], m[19], m[20],
-            m[21], m[22], m[23], m[24], m[25], m[26], m[27], m[28], m[29], m[30], m[31], m[32], m[33],
-            m[34], m[35], m[36], m[37], m[38], m[39], m[40], m[41], m[42], m[43], m[44], m[45], m[46],
-            m[47], m[48], m[49], m[50], m[51], m[52], m[53], m[54], m[55], m[56], m[57], m[58], m[59], m[60], m[61])
-            saved_for_later.append(new_visit)
-            id_taken.append(m[2])
+    def print_if_not_empty(entry_name, width, new_line):
+        if len(entry_name)!=0:
+            pdf.cell(width, 3, txt= entry_name, ln = new_line)
+            return 1
         else:
-            continue
-    #f =  open('unfinished_cards.txt', 'w', -1, "utf-8").close()
+            return 0
+    folder_selected = filedialog.askdirectory()
+    pdf = FPDF(orientation='P', unit='mm', format='A5')
+    pdf.set_margins(7, 5)
+    pdf.set_auto_page_break(True, margin = 104)
+    pdf.add_page()
+    pdf.add_font('times', '', 'times.ttf', uni = True)
+    pdf.set_font('times', '', 7)
+
+    pdf.cell(40, 3, txt="Дата обращения",  border = "B", ln=0)
+    pdf.cell(40, 3, txt= visit_date, ln = 0)
+    pdf.cell(40, 3, txt="ДД-001", ln=1)
+
+    pdf.cell(40, 3, txt="На приёме", border = "B", ln=0)
+    pdf.cell(0, 3, txt= visit_type, ln = 1)
+
+    pdf.cell(40, 3, txt="Направлен",border = "B", ln=0)
+    pdf.cell(0, 3, txt= directed, ln = 1)
+
+    pdf.cell(40, 3, txt="Жалобы",border = "B", ln=0)
+    pdf.multi_cell(0, 3, txt = complaints)
+
+    pdf.cell(40, 3, txt="Болен",border = "B", ln=0)
+    pdf.cell(0, 3, txt= sicktime, ln = 1)
+
+    pdf.cell(40, 3, txt="Лечение/Самолечение",border = "B", ln=0)
+    pdf.multi_cell(0, 3, txt = prev_treatment)
+
+    pdf.cell(40, 3, txt="Сопутствующие заболевания", border = "B",ln=0)
+    pdf.multi_cell(0, 3, txt =other_illness)
+
+    pdf.cell(40, 3, txt="Сахарный диабет", border = "B",ln=0)
+    pdf.cell(0, 3, txt= diabetes, ln = 1)
+
+    pdf.cell(40, 3, txt="Инфекционные заболевания", border = "B")
+    pdf.multi_cell(0, 3, txt= infect)
+
+    pdf.cell(40, 3, txt="Пищевая аллергия", border = "B",ln=0)
+    pdf.cell(0, 3, txt= allergy, ln = 1)
+
+    pdf.cell(40, 3, txt="Лекарственная непереносимость",border = "B", ln=0)
+    pdf.cell(0, 3, txt= drug_allergy, ln = 1)
+
+    pdf.cell(40, 3, txt="Наследственность",border = "B", ln=0)
+    pdf.cell(0, 3, txt= heredity, ln = 1)
+
+    pdf.cell(40, 3, txt="Постоянно принимает препараты",border = "B", ln=0)
+    pdf.cell(0, 3, txt= medicaments, ln = 1)
+
+    pdf.cell(40, 3, txt="Вредные привычки", border = "B",ln=0)
+    pdf.cell(0, 3, txt= addictions, ln = 1)
+
+    pdf.cell(40, 3, txt="Донором крови",border = "B", ln=0)
+    pdf.cell(0, 3, txt= blood_donor, ln = 1)
+
+    pdf.cell(40, 3, txt="Локальный статус", border = "B",ln=0)
+    pdf.multi_cell(0, 3, txt = loc_stat)
+
+    pdf.cell(0, 3, txt="Кожный патологический процесс:", border = "B", ln=1, align="C")
+    process=', '.join(process_characteristic)
+
+    pdf.cell(40, 3, txt="Характер процесса", border = "B", ln=0)
+    pdf.multi_cell(0, 3, txt = process)
+
+    pdf.cell(40, 3, txt="На коже", border = "B", ln=0)
+    pdf.cell(0, 3, txt= skin_entry, ln = 1)
+
+    pdf.cell(40, 3, txt="Высыпания представлены", border = "B",ln=0)
+    pdf.multi_cell(0, 3, txt = symptoms)
+
+    pdf.cell(40, 3, txt="Дермографизм", border = "B",ln=0)
+    pdf.cell(40, 3, txt = dermographism1, ln = 0)
+    pdf.cell(0, 3, txt= dermographism2, ln = 1)
+
+    pdf.cell(40, 3, txt="Слизистые оболочки",border = "B", ln=0)
+    pdf.cell(54, 3, txt = mucous_membranes, ln = 0)
+    pdf.cell(0, 3, txt= mucous_membranes2, ln = 1)
+
+    pdf.cell(40, 3, txt="Лимфатические узлы", border = "B",ln=0)
+    pdf.multi_cell(0, 3, txt = lymph)
+
+    if len(lymph_description) or len(lymph_description6) or len(lymph_description5) or len(lymph_description4)!=0:
+        pdf.cell(40, 3, txt = "", ln = 0)
+        pdf.cell(25, 3, txt = lymph_description, ln = 0)
+        pdf.cell(25, 3, txt = lymph_description6, ln = 0)
+        pdf.cell(25, 3, txt = lymph_description5, ln = 0)
+        pdf.cell(25, 3, txt = lymph_description4, ln = 1)
+
+    if len(lymph_description1)!=0:
+        pdf.cell(40, 3, txt = "", ln = 0)
+        pdf.cell(0, 3, txt = lymph_description1, ln = 1)
+
+    if len(lymph_description2)!=0:
+        pdf.cell(40, 3, txt = "", ln = 0)
+        pdf.cell(0, 3, txt = lymph_description2, ln = 1)
+
+    pdf.cell(40, 3, txt="Оволосение по типу: ", border = "B",ln=0)
+    pdf.cell(0, 3, txt= hair_description, ln = 1)
+
+    pdf.cell(40, 3, txt="Волосы", border = "B",ln=0)
+    pdf.multi_cell(0, 3, txt = hair_description2)
+
+    pdf.cell(40, 3, txt="Ногтевые пластины", border = "B",ln=0)
+    pdf.cell(30, 3, txt= nails_of, ln = 0)
+    pdf.multi_cell(0, 3, txt =nails_desc)
+
+    pdf.cell(40, 3, txt="Дополнительные симптомы", border = "B",ln=0)
+    pdf.multi_cell(0, 3, txt = additional_symp)
+
+    pdf.cell(40, 3, txt="На момент осм. чесотка и педикулёз", border = "B", ln=0)
+    pdf.cell(0, 3, txt= tkvr, ln = 1)
+
+    if pdf.page_no()==1:
+        pdf.add_page()
+
+
+    pdf.cell(40, 3, txt="Диагноз основной", border = "B",ln=0)
+    pdf.multi_cell(0, 3, txt= diagnosis_main)
+
+    pdf.cell(40, 3, txt="Форма",border = "B", ln=0)
+    pdf.cell(0, 3, txt= form, ln = 1)
+
+    pdf.cell(40, 3, txt="Стадия",border = "B", ln=0)
+    pdf.cell(0, 3, txt= stage, ln = 1)
+
+    pdf.cell(40, 3, txt="Код МКБ", border = "B",ln=0)
+    pdf.cell(0, 3, txt= code, ln = 1)
+
+    pdf.cell(40, 3, txt="Диагноз сопутствующий",border = "B", ln=0)
+    pdf.multi_cell(0, 3, txt= diagnosis2)
+
+    pdf.cell(40, 3, txt="Осложнения",border = "B", ln=0)
+    pdf.multi_cell(0, 3, txt= complication)
+
+    pdf.cell(0, 3, txt="План обследования", border = "B", ln=1, align="C")
+    pdf.cell(0, 3, txt=treatment, ln = 1)
+    pdf.cell(0, 3, txt= treatment2, ln = 1)
+    print_if_not_empty(treatment3, 0, 1)
+    print_if_not_empty(treatment4, 0, 1)
+    print_if_not_empty(treatment4, 0, 1)
+    print_if_not_empty(treatment6, 0, 1)
+
+    pdf.cell(0, 3, txt="Рекомендации", border = "B",ln=1, align="C")
+    pdf.cell(0, 3, txt= recomm, ln = 1)
+    pdf.cell(0, 3, txt= recomm2, ln = 1)
+    print_if_not_empty(recomm3, 0, 1)
+    print_if_not_empty(recomm4, 0, 1)
+    print_if_not_empty(recomm4, 0, 1)
+    print_if_not_empty(recomm6, 0, 1)
+
+    pdf.cell(40, 3, txt="Повторная явка", border = "B", ln=0)
+    pdf.multi_cell(0, 3, txt= comeback)
+
+    pdf.cell(40, 3, txt="Врач", border = "B", ln=0)
+    pdf.cell(40, 3, txt= doctor, ln = 1)
+
+    file_str = folder_selected+"/"+last_name
+    i=0
+    while os.path.exists(file_str)==True:
+        file_str = file_str+"({})".format(str(i))
+        i+=1
+    pdf.output(file_str)
+    messagebox.showinfo("ОК", "Файл был сохранен")
     return
 
-def on_termination():
-    save_to_text()
-    saved_for_later.clear()
-    #connection.close()
-    return
-
-def save_for_later(visit_id, last_name, first_name, birthyear,
-                        birthmonth,  birthday, visit_date,
-                        visit_type, directed, complaints, sicktime, prev_treatment,
-                        other_illness, diabetes, infect, allergy, drug_allergy,
-                        heredity, medicaments, addictions, blood_donor, loc_stat,
-                        process_characteristic, skin_of, symptoms, dermographism1, dermographism2,
-                        mucous_membranes, mucous_membranes2, lymph, lymph_description,
-                        lymph_description1, lymph_description2, lymph_description4,
-                        lymph_description6, lymph_description5, hair_description,
-                        hair_description2, nails_of, nails_desc, additional_symp,
-                        tkvr, diagnosis_main, form, stage, code, diagnosis2,
-                        complication, treatment, treatment2, treatment3, treatment4,
-                        treatment5, treatment6, recomm, recomm2, recomm3,
-                        recomm4, recomm5, recomm6, comeback, doctor):
-    if visit_id ==None:
-        new_id = generate_id()
-        new_visit = Visit(new_id, last_name, first_name, birthyear,
-    birthmonth,  birthday, visit_date,
-                            visit_type, directed, complaints, sicktime, prev_treatment,
-                            other_illness, diabetes, infect, allergy, drug_allergy,
-                                heredity, medicaments, addictions, blood_donor, loc_stat,
-                                    process_characteristic, skin_of, symptoms, dermographism1, dermographism2,
-                mucous_membranes, mucous_membranes2, lymph, lymph_description,
-                    lymph_description1, lymph_description2, lymph_description4,
-                    lymph_description6, lymph_description5, hair_description,
-                                                        hair_description2, nails_of, nails_desc, additional_symp,
-                                                        tkvr, diagnosis_main, form, stage, code, diagnosis2,
-                                                        complication, treatment, treatment2, treatment3, treatment4,
-                                                        treatment5, treatment6, recomm, recomm2, recomm3,
-                                                        recomm4, recomm5, recomm6, comeback, doctor)
-        saved_for_later.append(new_visit)
-    else:
-        index = next(i for i, x in enumerate(saved_for_later) if x.visit_id == visit_id)
-        saved_for_later.pop(index)
-        replace_visit = Visit(visit_id, last_name, first_name, birthyear, birthmonth,  birthday, visit_date,
-                    visit_type, directed, complaints, sicktime, prev_treatment,
-                    other_illness, diabetes, infect, allergy, drug_allergy,
-                    heredity, medicaments, addictions, blood_donor, loc_stat,
-                    process_characteristic, skin_of, symptoms, dermographism1, dermographism2,
-                    mucous_membranes, mucous_membranes2, lymph, lymph_description,
-                    lymph_description1, lymph_description2, lymph_description4,
-                    lymph_description6, lymph_description5, hair_description,
-                    hair_description2, nails_of, nails_desc, additional_symp,
-                    tkvr, diagnosis_main, form, stage, code, diagnosis2,
-                    complication, treatment, treatment2, treatment3, treatment4,
-                    treatment5, treatment6, recomm, recomm2, recomm3,
-                    recomm4, recomm5, recomm6, comeback, doctor)
-        saved_for_later.append(replace_visit)
-    return
-
-def delete_from_saved_for_later(visit_id):
-    if visit_id!=None:
-        index = next(i for i, x in enumerate(saved_for_later) if x.visit_id == visit_id)
-        saved_for_later.pop(index)
-        id_taken.remove(visit_id)
-        save_to_text() #updates the textfile on the background replace for faster work
-    return
 
 #-- LISTS VALUES----
 visit_types = {'впервые',  'повторный после лечения'}
-donor = {'Является',  'Не является'}
+donor = {'является',  'не является'}
 process = ['острый',  'подострый',  'хронический',  'невоспалительный',  'ограниченный',  'нераспространенный',  'распространенный',  'несимметричный',  'симметричный',  'генерализованный']
 derm = {'красный', 'белый', 'смешанный'}
 derm2 = {'стойкий', 'нестойкий'}
@@ -416,6 +488,14 @@ l4 = {'плотные', 'мягкие'}
 l5 = {'неподвижные', 'подвижные'}
 l7 = {'женскому', 'мужскому'}
 diabetes_options = {"отрицает", "первого типа", "второго типа"}
+values_for_prev_treatment = ['отрицает','с положительной динамикой', 'с отрицательной динамикой', 'без эффекта']
+values_for_ll1 = ['не увеличены','увеличены до']
+values_for_ll2 = ['симметрично','не симметрично']
+values_for_ll6 = ['неспаянные','спаянные']
+values_for_hair = ['без изменений', 'изменены']
+parts = {'кистей', 'стоп', 'кистей и стоп'}
+choices = {'не выявлены', 'выявлены'}
+
 years = []
 for i in range(datetime.date.today().year - 120,  datetime.date.today().year+1):
     years.append(i)
@@ -428,11 +508,8 @@ days = []
 for i in range(1,  32):
     days.append(i)
 
-#------------------------DB FUNCTIONS-------------------------------------------
+#------------------------OTHER DB FUNCTIONS-------------------------------------------
 
-#def delete_patient_db(search_by,  value):
-    #execute(select from and delete)
-    #return
-
+#input cleaner for injection attack
 #def clean_name(some_var):
 #    return ''.join(char for char in some_var if char.isalnum())'''

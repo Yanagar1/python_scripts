@@ -1,0 +1,84 @@
+"Patients" Python3 Project.
+
+
+Objectives:
+
+1. Record, store, and look up patients' information
+2. Print medical history pdf in a specific format
+
+
+Files:
+
+patients.py - TK Interface file; - main file, run this.
+patients2.py - Data Initializer file;
+setup_db.py  - creates the SQLite database. (Run once).
+
+
+Functions defined in patients2.py:
+
+- find_longest() # determines the longest entry among returned values, made for formatting purposes.
+
+- create_connection() #connects to db
+
+- add_patient_to_db() #function to be called when saving
+
+- overwrite_patient() #function to be called when saving
+
+- delete_entry_from_db()
+
+- search_args_to_command() #creates SQLite search string
+
+- look_db() #search performer with the command made previously
+
+- on_termination() #makes sure that all data is saved and connection is closed
+
+- convert_db_entry_to_class #takes a tuple from db and creates a class object to manipulate
+
+- append_saved_for_later() #updates the list of unfinished cards
+
+- check_input_none() #some input cannot be none
+
+- check_dupli() #used for filing the form with present data
+
+- class Visit #main object
+
+- new_frame() #creates scrollable frame for inner widjets 
+
+- create_pdf() #implements fpdf package and saves a pdf file. Need to have font ttf file in the folder.
+
+
+
+ 
+
+Functions defined in patients.py:
+
+- mainwin() #main interface window - consists of 3 tabs. (Saved for later, search, new patient)
+
+- call_saved_for_later_tab() #shows a list of unfinished cards as buttons. Opens editable record with call_form() function
+
+- call_search_tab() #one of the main functions called out by clicking on the constant menu
+		    1. Opens the search form and. "Search button"
+		    2. Calls print_output()
+
+- new patient button calls blank call_form()
+
+- call_form() #creates empty form for a new record or shows filled record for an existing entry.
+
+- clear frame() #delete widgets in the current frame
+
+- print_output() #1. Calls search_args_to_command() to create SQLite search command. 
+		  2. Converts found entries to class Visit()
+		  3. Prints the info of found entries with buttons to open the full records
+
+
+- save_and_report() #write data to a certain table (unfinished cards or completed cards) and reports that entry has been saved. Uses functions add_patient_to_db() or overwrite_patient()
+
+- create_and_report_pdf() #calls for create_pdf
+
+- delete_and_clear() #calls delete_entry_from_db()
+
+
+
+
+
+
